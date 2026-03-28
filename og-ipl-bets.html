@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>IPL Betting 2026</title>
+
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getDatabase, ref, set, get, update, onValue, push, serverTimestamp }
+    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBG3Jq67q48Igf8Wk8k7f_7KJOO6gIDuhw",
+    authDomain: "og-ipl-bets.firebaseapp.com",
+    databaseURL: "https://og-ipl-bets-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "og-ipl-bets",
+    storageBucket: "og-ipl-bets.firebasestorage.app",
+    messagingSenderId: "177816228695",
+    appId: "1:177816228695:web:abe8ebf455f36a44f1e412"
+  };
+
+  const ADMIN_EMAIL     = "mj.vgschool@gmail.com";   // ← change this
+  const REGISTER_CODE   = "ipl2026";               // ← registration passcode
+
+  // ── IPL 2026 MATCHES (first 20 confirmed + representative later matches) ──
+  const MATCHES = [
+    {id:"m01", date:"2026-03-28", time:"19:30", team1:"RCB", team2:"SRH", venue:"Bengaluru"},
+    {id:"m02", date:"2026-03-29", time:"19:30", team1:"MI",  team2:"KKR", venue:"Wankhede"},
+    {id:"m03", date:"2026-03-30", time:"19:30", team1:"RR",  team2:"CSK", venue:"Guwahati"},
+    {id:"m04", date:"2026-03-31", time:"19:30", team1:"PBKS",team2:"GT",  venue:"New Chandigarh"},
+    {id:"m05", date:"2026-04-01", time:"19:30", team1:"LSG", team2:"DC",  venue:"Lucknow"},
+    {id:"m06", date:"2026-04-02", time:"19:30", team1:"KKR", team2:"SRH", venue:"Kolkata"},
+    {id:"m07", date:"2026-04-03", time:"19:30", team1:"CSK", team2:"PBKS",venue:"Chennai"},
+    {id:"m08", date:"2026-04-04", time:"19:30", team1:"DC",  team2:"MI",  venue:"Delhi"},
+    {id:"m09", date:"2026-04-05", time:"15:30", team1:"GT",  team2:"RR",  venue:"Ahmedabad"},
+    {id:"m10", date:"2026-04-05", time:"19:30", team1:"SRH", team2:"LSG", venue:"Hyderabad"},
+    {id:"m11", date:"2026-04-06", time:"15:30", team1:"RCB", team2:"CSK", venue:"Bengaluru"},
+    {id:"m12", date:"2026-04-06", time:"19:30", team1:"KKR", team2:"PBKS",venue:"Kolkata"},
+    {id:"m13", date:"2026-04-07", time:"19:30", team1:"RR",  team2:"MI",  venue:"Jaipur"},
+    {id:"m14", date:"2026-04-08", time:"19:30", team1:"DC",  team2:"GT",  venue:"Delhi"},
+    {id:"m15", date:"2026-04-09", time:"19:30", team1:"KKR", team2:"LSG", venue:"Kolkata"},
+    {id:"m16", date:"2026-04-10", time:"19:30", team1:"RR",  team2:"RCB", venue:"Jaipur"},
+    {id:"m17", date:"2026-04-11", time:"19:30", team1:"PBKS",team2:"SRH", venue:"Dharamshala"},
+    {id:"m18", date:"2026-04-12", time:"15:30", team1:"CSK", team2:"DC",  venue:"Chennai"},
+    {id:"m19", date:"2026-04-12", time:"19:30", team1:"LSG", team2:"GT",  venue:"Lucknow"},
+    {id:"m20", date:"2026-04-13", time:"15:30", team1:"MI",  team2:"RCB", venue:"Wankhede"},
+    {id:"m21", date:"2026-04-13", time:"19:30", team1:"SRH", team2:"RR",  venue:"Hyderabad"},
+    {id:"m22", date:"2026-04-14", time:"19:30", team1:"CSK", team2:"KKR", venue:"Chennai"},
+    {id:"m23", date:"2026-04-15", time:"19:30", team1:"RCB", team2:"LSG", venue:"Bengaluru"},
+    {id:"m24", date:"2026-04-16", time:"19:30", team1:"MI",  team2:"PBKS",venue:"Wankhede"},
+    {id:"m25", date:"2026-04-17", time:"19:30", team1:"GT",  team2:"KKR", venue:"Ahmedabad"},
+    {id:"m26", date:"2026-04-18", time:"19:30", team1:"RCB", team2:"DC",  venue:"Bengaluru"},
+    {id:"m27", date:"2026-04-19", time:"15:30", team1:"SRH", team2:"CSK", venue:"Hyderabad"},
+    {id:"m28", date:"2026-04-19", time:"19:30", team1:"KKR", team2:"RR",  venue:"Kolkata"},
+    {id:"m29", date:"2026-04-20", time:"15:30", team1:"PBKS",team2:"LSG", venue:"Dharamshala"},
+    {id:"m30", date:"2026-04-20", time:"19:30", team1:"GT",  team2:"MI",  venue:"Ahmedabad"},
+    {id:"m31", date:"2026-04-21", time:"19:30", team1:"SRH", team2:"DC",  venue:"Hyderabad"},
+    {id:"m32", date:"2026-04-22", time:"19:30", team1:"LSG", team2:"RR",  venue:"Lucknow"},
+    {id:"m33", date:"2026-04-23", time:"19:30", team1:"MI",  team2:"CSK", venue:"Wankhede"},
+    {id:"m34", date:"2026-04-24", time:"19:30", team1:"RCB", team2:"GT",  venue:"Bengaluru"},
+    {id:"m35", date:"2026-04-25", time:"19:30", team1:"DC",  team2:"PBKS",venue:"Delhi"},
+    {id:"m36", date:"2026-04-26", time:"15:30", team1:"RR",  team2:"SRH", venue:"Jaipur"},
+    {id:"m37", date:"2026-04-26", time:"19:30", team1:"GT",  team2:"CSK", venue:"Ahmedabad"},
+    {id:"m38", date:"2026-04-27", time:"15:30", team1:"LSG", team2:"KKR", venue:"Lucknow"},
+    {id:"m39", date:"2026-04-27", time:"19:30", team1:"DC",  team2:"RCB", venue:"Delhi"},
+    {id:"m40", date:"2026-04-28", time:"19:30", team1:"PBKS",team2:"RR",  venue:"New Chandigarh"},
+    {id:"m41", date:"2026-04-29", time:"19:30", team1:"MI",  team2:"SRH", venue:"Wankhede"},
+    {id:"m42", date:"2026-04-30", time:"19:30", team1:"GT",  team2:"RCB", venue:"Ahmedabad"},
+    {id:"m43", date:"2026-05-01", time:"19:30", team1:"RR",  team2:"DC",  venue:"Jaipur"},
+    {id:"m44", date:"2026-05-02", time:"19:30", team1:"CSK", team2:"LSG", venue:"Chennai"},
+    {id:"m45", date:"2026-05-03", time:"15:30", team1:"KKR", team2:"MI",  venue:"Kolkata"},
+    {id:"m46", date:"2026-05-03", time:"19:30", team1:"PBKS",team2:"DC",  venue:"Dharamshala"},
+    {id:"m47", date:"2026-05-04", time:"15:30", team1:"SRH", team2:"GT",  venue:"Hyderabad"},
+    {id:"m48", date:"2026-05-04", time:"19:30", team1:"RCB", team2:"RR",  venue:"Bengaluru"},
+    {id:"m49", date:"2026-05-05", time:"19:30", team1:"CSK", team2:"MI",  venue:"Chennai"},
+    {id:"m50", date:"2026-05-06", time:"19:30", team1:"DC",  team2:"KKR", venue:"Delhi"},
+    {id:"m51", date:"2026-05-07", time:"19:30", team1:"LSG", team2:"PBKS",venue:"Lucknow"},
+    {id:"m52", date:"2026-05-08", time:"19:30", team1:"GT",  team2:"SRH", venue:"Ahmedabad"},
+    {id:"m53", date:"2026-05-09", time:"15:30", team1:"MI",  team2:"RR",  venue:"Wankhede"},
+    {id:"m54", date:"2026-05-09", time:"19:30", team1:"KKR", team2:"CSK", venue:"Kolkata"},
+    {id:"m55", date:"2026-05-10", time:"15:30", team1:"RCB", team2:"PBKS",venue:"Bengaluru"},
+    {id:"m56", date:"2026-05-10", time:"19:30", team1:"DC",  team2:"LSG", venue:"Delhi"},
+    {id:"m57", date:"2026-05-11", time:"19:30", team1:"SRH", team2:"MI",  venue:"Hyderabad"},
+    {id:"m58", date:"2026-05-12", time:"19:30", team1:"GT",  team2:"DC",  venue:"Ahmedabad"},
+    {id:"m59", date:"2026-05-13", time:"19:30", team1:"RR",  team2:"KKR", venue:"Jaipur"},
+    {id:"m60", date:"2026-05-14", time:"19:30", team1:"PBKS",team2:"CSK", venue:"New Chandigarh"},
+    {id:"m61", date:"2026-05-15", time:"19:30", team1:"LSG", team2:"MI",  venue:"Lucknow"},
+    {id:"m62", date:"2026-05-16", time:"15:30", team1:"DC",  team2:"SRH", venue:"Delhi"},
+    {id:"m63", date:"2026-05-16", time:"19:30", team1:"KKR", team2:"GT",  venue:"Kolkata"},
+    {id:"m64", date:"2026-05-17", time:"15:30", team1:"CSK", team2:"RR",  venue:"Chennai"},
+    {id:"m65", date:"2026-05-17", time:"19:30", team1:"MI",  team2:"LSG", venue:"Wankhede"},
+    {id:"m66", date:"2026-05-18", time:"19:30", team1:"PBKS",team2:"KKR", venue:"Dharamshala"},
+    {id:"m67", date:"2026-05-19", time:"19:30", team1:"GT",  team2:"RR",  venue:"Ahmedabad"},
+    {id:"m68", date:"2026-05-20", time:"19:30", team1:"SRH", team2:"PBKS",venue:"Hyderabad"},
+    {id:"m69", date:"2026-05-21", time:"19:30", team1:"RCB", team2:"KKR", venue:"Bengaluru"},
+    {id:"m70", date:"2026-05-22", time:"19:30", team1:"DC",  team2:"CSK", venue:"Delhi"},
+    {id:"m71", date:"2026-05-23", time:"15:30", team1:"LSG", team2:"SRH", venue:"Lucknow"},
+    {id:"m72", date:"2026-05-23", time:"19:30", team1:"MI",  team2:"GT",  venue:"Wankhede"},
+    {id:"m73", date:"2026-05-24", time:"15:30", team1:"RR",  team2:"PBKS",venue:"Jaipur"},
+    {id:"m74", date:"2026-05-24", time:"19:30", team1:"KKR", team2:"DC",  venue:"Kolkata"},
+  ];
+
+  const TEAM_META = {
+    RCB:  {full:"Royal Challengers Bengaluru", color:"#EC1C24", bg:"#1A0003"},
+    MI:   {full:"Mumbai Indians",               color:"#004BA0", bg:"#000D1A"},
+    CSK:  {full:"Chennai Super Kings",          color:"#F4C430", bg:"#1A1200"},
+    KKR:  {full:"Kolkata Knight Riders",        color:"#7B2D8B", bg:"#0D0012"},
+    SRH:  {full:"Sunrisers Hyderabad",          color:"#F26522", bg:"#1A0900"},
+    RR:   {full:"Rajasthan Royals",             color:"#EA1A85", bg:"#1A0011"},
+    PBKS: {full:"Punjab Kings",                 color:"#DCBE2E", bg:"#1A1500"},
+    GT:   {full:"Gujarat Titans",               color:"#1C4F90", bg:"#000D1A"},
+    LSG:  {full:"Lucknow Super Giants",         color:"#A72B2A", bg:"#1A0000"},
+    DC:   {full:"Delhi Capitals",               color:"#17479E", bg:"#000D1A"},
+  };
+
+  // ── App init ──
+  const app  = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db   = getDatabase(app);
+
+  let currentUser = null;
+  let currentUid  = null;
+  let isAdmin     = false;
+
+  // ── Helpers ──
+  const $ = id => document.getElementById(id);
+  const dbRef = path => ref(db, path);
+  function formatINR(n){ return "₹" + Number(n).toLocaleString("en-IN"); }
+  function toast(msg, type="info"){
+    const t = document.createElement("div");
+    t.className = `toast toast-${type}`;
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(()=>t.remove(), 3200);
+  }
+  function matchLabel(m){ return `${m.team1} vs ${m.team2}`; }
+  function fmtDate(d){ return new Date(d).toLocaleDateString("en-IN",{day:"numeric",month:"short",weekday:"short"}); }
+
+  // ── AUTH STATE ──
+  onAuthStateChanged(auth, async user => {
+    if(user){
+      currentUser = user;
+      currentUid  = user.uid;
+      isAdmin     = user.email === ADMIN_EMAIL;
+      await ensureUserProfile(user);
+      showApp();
+    } else {
+      currentUser = null; currentUid = null; isAdmin = false;
+      showAuth();
+    }
+  });
+
+  async function ensureUserProfile(user){
+    const snap = await get(dbRef(`users/${user.uid}`));
+    if(!snap.exists()){
+      await set(dbRef(`users/${user.uid}`), {
+        email: user.email,
+        name: user.email.split("@")[0],
+        balance: 0,
+        wins: 0, losses: 0, bets: 0
+      });
+    }
+  }
+
+  // ── REGISTER ──
+  window.doRegister = async function(){
+    const email = $("reg-email").value.trim();
+    const pass  = $("reg-pass").value;
+    const code  = $("reg-code").value.trim();
+    const name  = $("reg-name").value.trim();
+    if(code !== REGISTER_CODE){ toast("Wrong squad code!", "error"); return; }
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, pass);
+      await set(dbRef(`users/${cred.user.uid}`), {
+        email, name: name||email.split("@")[0], balance:0, wins:0, losses:0, bets:0
+      });
+      toast("Welcome to the squad! 🏏", "success");
+    } catch(e){ toast(e.message, "error"); }
+  };
+
+  // ── LOGIN ──
+  window.doLogin = async function(){
+    const email = $("login-email").value.trim();
+    const pass  = $("login-pass").value;
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
+    } catch(e){ toast("Login failed: " + e.message, "error"); }
+  };
+
+  // ── LOGOUT ──
+  window.doLogout = async function(){
+    await signOut(auth);
+  };
+
+  // ── SHOW AUTH / APP ──
+  function showAuth(){
+    $("auth-screen").style.display = "flex";
+    $("app-screen").style.display  = "none";
+  }
+  function showApp(){
+    $("auth-screen").style.display = "none";
+    $("app-screen").style.display  = "block";
+    $("user-name-display").textContent = currentUser.email.split("@")[0];
+    if(isAdmin) $("admin-nav-link").style.display = "inline-block";
+    loadPage("matches");
+  }
+
+  // ── NAV ──
+  window.loadPage = function(page){
+    document.querySelectorAll(".nav-btn").forEach(b=>b.classList.remove("active"));
+    const nb = document.querySelector(`.nav-btn[data-page="${page}"]`);
+    if(nb) nb.classList.add("active");
+    const main = $("main-content");
+    if(page==="matches")     renderMatches(main);
+    else if(page==="leaderboard") renderLeaderboard(main);
+    else if(page==="account")    renderAccount(main);
+    else if(page==="admin")      renderAdmin(main);
+  };
+
+  // ══════════════════════════════════════════════
+  //  MATCHES PAGE
+  // ══════════════════════════════════════════════
+  async function renderMatches(main){
+    main.innerHTML = `<div class="page-header"><span class="page-title">📅 Matches</span></div><div id="match-list" class="match-list"></div>`;
+    const [betsSnap, resultsSnap] = await Promise.all([
+      get(dbRef(`bets/${currentUid}`)),
+      get(dbRef("results"))
+    ]);
+    const myBets   = betsSnap.exists()    ? betsSnap.val()    : {};
+    const results  = resultsSnap.exists() ? resultsSnap.val() : {};
+    const ml = $("match-list");
+
+    for(const m of MATCHES){
+      const result = results[m.id];
+      const myBet  = myBets[m.id];
+      const [mHour] = m.time.split(":").map(Number);
+      const betCutoff = new Date(`${m.date}T${mHour.toString().padStart(2,"0")}:45:00`);
+      const isPast = betCutoff <= new Date();
+      const card = document.createElement("div");
+      card.className = "match-card" + (isPast?" match-past":"") + (result?" match-done":"");
+
+      const meta1 = TEAM_META[m.team1]; const meta2 = TEAM_META[m.team2];
+      let statusHtml = "";
+      if(result){
+        const win = result.winner;
+        statusHtml = `<div class="result-badge" style="color:${TEAM_META[win]?.color||'#fff'}">✅ ${win} won</div>`;
+        if(myBet){
+          const won = myBet.team === win;
+          statusHtml += `<div class="my-bet-result ${won?'bet-won':'bet-lost'}">${won?'🤑 You won':'😔 You lost'} ${formatINR(myBet.amount)}</div>`;
+        }
+      } else if(myBet){
+        statusHtml = `<div class="my-bet-pill" style="border-color:${TEAM_META[myBet.team]?.color||'#fff'}">🎯 Bet: ${myBet.team} — ${formatINR(myBet.amount)}</div>`;
+      }
+
+      const canBet = !isPast && !result && !myBet;
+
+      card.innerHTML = `
+        <div class="match-meta">${fmtDate(m.date)} · ${m.time} IST · ${m.venue}</div>
+        <div class="match-teams">
+          <span class="team-badge" style="color:${meta1.color}">${m.team1}</span>
+          <span class="vs">VS</span>
+          <span class="team-badge" style="color:${meta2.color}">${m.team2}</span>
+        </div>
+        ${statusHtml}
+        ${canBet ? `
+        <div class="bet-form" id="bf-${m.id}">
+          <div class="bet-team-choice">
+            <button class="bet-team-btn" id="bt-${m.id}-${m.team1}" onclick="selectBetTeam('${m.id}','${m.team1}','${m.team2}')" style="--tc:${meta1.color}">${m.team1}</button>
+            <button class="bet-team-btn" id="bt-${m.id}-${m.team2}" onclick="selectBetTeam('${m.id}','${m.team2}','${m.team1}')" style="--tc:${meta2.color}">${m.team2}</button>
+          </div>
+          <div class="bet-amount-row">
+            <input type="number" id="ba-${m.id}" placeholder="Amount (₹)" min="1" class="bet-input"/>
+            <button class="place-bet-btn" onclick="placeBet('${m.id}','${m.team1}','${m.team2}')">Place Bet</button>
+          </div>
+        </div>` : ""}
+      `;
+      ml.appendChild(card);
+    }
+  }
+
+  let selectedTeams = {}; // matchId → team
+  window.selectBetTeam = function(mid, team, other){
+    selectedTeams[mid] = team;
+    const meta = TEAM_META[team];
+    const b1 = $(`bt-${mid}-${team}`);
+    const b2 = $(`bt-${mid}-${other}`);
+    if(b1){ b1.classList.add("selected"); b1.style.setProperty("--tc", meta.color); }
+    if(b2){ b2.classList.remove("selected"); }
+  };
+
+  window.placeBet = async function(mid, t1, t2){
+    const team   = selectedTeams[mid];
+    const amount = parseInt($(`ba-${mid}`).value);
+    if(!team){ toast("Pick a team first!", "error"); return; }
+    if(!amount || amount < 1){ toast("Enter a valid amount!", "error"); return; }
+
+    // Bets close at HH:45 on match day (15 min before start)
+    const match = MATCHES.find(m=>m.id===mid);
+    const [mHour] = match.time.split(":").map(Number);
+    const cutoff = new Date(`${match.date}T${mHour.toString().padStart(2,"0")}:45:00`);
+    if(new Date() >= cutoff){
+      toast("Bets closed for this match!", "error"); return;
+    }
+    try {
+      await set(dbRef(`bets/${currentUid}/${mid}`), { team, amount, ts: Date.now() });
+      toast(`Bet placed: ${team} for ${formatINR(amount)} 🏏`, "success");
+      renderMatches($("main-content"));
+    } catch(e){ toast(e.message, "error"); }
+  };
+
+  // ══════════════════════════════════════════════
+  //  LEADERBOARD PAGE
+  // ══════════════════════════════════════════════
+  async function renderLeaderboard(main){
+    main.innerHTML = `<div class="page-header"><span class="page-title">🏆 Leaderboard</span></div><div class="lb-loading">Loading…</div>`;
+
+    const [usersSnap, betsSnap, resultsSnap] = await Promise.all([
+      get(dbRef("users")),
+      get(dbRef("bets")),
+      get(dbRef("results"))
+    ]);
+
+    const users   = usersSnap.exists()   ? usersSnap.val()   : {};
+    const allBets = betsSnap.exists()    ? betsSnap.val()    : {};
+    const results = resultsSnap.exists() ? resultsSnap.val() : {};
+
+    // Compute P&L for each user
+    const rows = [];
+    for(const [uid, u] of Object.entries(users)){
+      let profit = 0, wins = 0, losses = 0, pending = 0;
+      const myBets = allBets[uid] || {};
+      for(const [mid, bet] of Object.entries(myBets)){
+        const res = results[mid];
+        if(!res){ pending++; continue; }
+        if(res.winner === bet.team){
+          // Count how many others lost on this match
+          let payout = 0;
+          for(const [ouid, obets] of Object.entries(allBets)){
+            if(ouid === uid) continue;
+            const ob = obets[mid];
+            if(ob && ob.team !== bet.team) payout += ob.amount;
+          }
+          profit += payout; wins++;
+        } else {
+          // Count how many others won on this match
+          let lost = 0;
+          for(const [ouid, obets] of Object.entries(allBets)){
+            if(ouid === uid) continue;
+            const ob = obets[mid];
+            if(ob && ob.team === results[mid]?.winner) lost += bet.amount/
+              Object.values(allBets).filter(b=>b[mid]&&b[mid].team===results[mid].winner).length || 1;
+          }
+          profit -= bet.amount; losses++;
+        }
+      }
+      const winRate = (wins+losses)>0 ? Math.round(wins/(wins+losses)*100) : 0;
+      rows.push({ name: u.name||u.email, email: u.email, profit, wins, losses, winRate, pending });
+    }
+    rows.sort((a,b)=>b.profit-a.profit);
+
+    let html = `<div class="page-header"><span class="page-title">🏆 Leaderboard</span></div>
+    <table class="lb-table">
+      <thead><tr><th>#</th><th>Player</th><th>P&amp;L</th><th>Win %</th><th>W/L</th></tr></thead><tbody>`;
+    rows.forEach((r,i)=>{
+      const pos = i===0?"🥇":i===1?"🥈":i===2?"🥉":`${i+1}`;
+      const plc = r.profit>0?"profit-pos":r.profit<0?"profit-neg":"";
+      html+=`<tr class="${r.email===currentUser.email?"my-row":""}">
+        <td>${pos}</td>
+        <td class="lb-name">${r.name}${r.email===currentUser.email?' <span class="you-tag">you</span>':''}</td>
+        <td class="lb-pl ${plc}">${r.profit>=0?"+":""}${formatINR(r.profit)}</td>
+        <td>${r.winRate}%</td>
+        <td>${r.wins}W ${r.losses}L</td>
+      </tr>`;
+    });
+    html += `</tbody></table>`;
+    main.innerHTML = html;
+  }
+
+  // ══════════════════════════════════════════════
+  //  ACCOUNT PAGE
+  // ══════════════════════════════════════════════
+  async function renderAccount(main){
+    const [userSnap, betsSnap, resultsSnap, allBetsSnap] = await Promise.all([
+      get(dbRef(`users/${currentUid}`)),
+      get(dbRef(`bets/${currentUid}`)),
+      get(dbRef("results")),
+      get(dbRef("bets"))
+    ]);
+
+    const u       = userSnap.exists()    ? userSnap.val()    : {};
+    const myBets  = betsSnap.exists()    ? betsSnap.val()    : {};
+    const results = resultsSnap.exists() ? resultsSnap.val() : {};
+    const allBets = allBetsSnap.exists() ? allBetsSnap.val() : {};
+
+    let profit=0, wins=0, losses=0;
+    const betRows = [];
+    for(const [mid, bet] of Object.entries(myBets)){
+      const match = MATCHES.find(m=>m.id===mid);
+      if(!match) continue;
+      const res = results[mid];
+      let pnl = null, status = "pending";
+      if(res){
+        if(res.winner === bet.team){
+          let payout = 0;
+          for(const [ouid, obets] of Object.entries(allBets)){
+            if(ouid === currentUid) continue;
+            const ob = obets[mid];
+            if(ob && ob.team !== bet.team) payout += ob.amount;
+          }
+          pnl = payout; profit+=pnl; wins++; status="won";
+        } else {
+          pnl = -bet.amount; profit+=pnl; losses++; status="lost";
+        }
+      }
+      betRows.push({match, bet, pnl, status});
+    }
+    betRows.sort((a,b)=>new Date(b.match.date)-new Date(a.match.date));
+    const winRate = (wins+losses)>0 ? Math.round(wins/(wins+losses)*100) : 0;
+
+    let betHistHtml = betRows.length ? betRows.map(r=>{
+      const mc = TEAM_META[r.bet.team];
+      return `<div class="bet-history-row ${r.status}">
+        <div class="bh-match">${r.match.team1} vs ${r.match.team2} <span class="bh-date">${fmtDate(r.match.date)}</span></div>
+        <div class="bh-detail">
+          <span style="color:${mc?.color||'#fff'}">${r.bet.team}</span> · ${formatINR(r.bet.amount)}
+          ${r.pnl!==null?`<span class="bh-pnl ${r.status==="won"?"profit-pos":"profit-neg"}">${r.pnl>=0?"+":""}${formatINR(r.pnl)}</span>`:`<span class="bh-pending">⏳</span>`}
+        </div>
+      </div>`;
+    }).join("") : `<div class="empty-state">No bets yet. Go place some! 🏏</div>`;
+
+    main.innerHTML = `
+    <div class="page-header"><span class="page-title">👤 My Account</span></div>
+    <div class="account-stats">
+      <div class="stat-card"><div class="stat-val ${profit>=0?"profit-pos":"profit-neg"}">${profit>=0?"+":""}${formatINR(profit)}</div><div class="stat-label">Total P&amp;L</div></div>
+      <div class="stat-card"><div class="stat-val">${winRate}%</div><div class="stat-label">Win Rate</div></div>
+      <div class="stat-card"><div class="stat-val">${wins}</div><div class="stat-label">Wins</div></div>
+      <div class="stat-card"><div class="stat-val">${losses}</div><div class="stat-label">Losses</div></div>
+    </div>
+    <div class="section-title">Bet History</div>
+    <div class="bet-history">${betHistHtml}</div>`;
+  }
+
+  // ══════════════════════════════════════════════
+  //  ADMIN PAGE
+  // ══════════════════════════════════════════════
+  async function renderAdmin(main, activeTab="pending"){
+    if(!isAdmin){ main.innerHTML=`<div class="empty-state">⛔ Access denied</div>`; return; }
+
+    const [resultsSnap, betsSnap, usersSnap] = await Promise.all([
+      get(dbRef("results")),
+      get(dbRef("bets")),
+      get(dbRef("users"))
+    ]);
+    const results = resultsSnap.exists() ? resultsSnap.val() : {};
+    const allBets = betsSnap.exists()    ? betsSnap.val()    : {};
+    const users   = usersSnap.exists()   ? usersSnap.val()   : {};
+
+    // Show ALL unresolved matches (admin can declare result at any time)
+    const pendingMatches = MATCHES.filter(m=> !results[m.id]);
+    const resolvedMatches = MATCHES.filter(m=> results[m.id]);
+
+    let pendingHtml = "";
+    if(pendingMatches.length){
+      pendingHtml = pendingMatches.map(m=>{
+        const isPast = new Date(`${m.date}T${m.time}`) < new Date();
+        const tag = isPast
+          ? `<span class="admin-past-tag">Played</span>`
+          : `<span class="admin-future-tag">Upcoming</span>`;
+        return `
+        <div class="admin-match-card">
+          <div class="admin-match-header">
+            <div class="admin-match-label">${m.team1} vs ${m.team2}</div>
+            ${tag}
+          </div>
+          <div class="admin-match-meta">${fmtDate(m.date)} · ${m.time} IST · ${m.venue}</div>
+          <div class="admin-bet-summary">${getBetSummary(m.id, allBets, m)}</div>
+          <div class="admin-result-btns">
+            <button class="admin-win-btn" style="--tc:${TEAM_META[m.team1]?.color||'#555'}" onclick="setResult('${m.id}','${m.team1}','${m.team2}','${m.team1}')">${m.team1} Won</button>
+            <button class="admin-win-btn" style="--tc:${TEAM_META[m.team2]?.color||'#555'}" onclick="setResult('${m.id}','${m.team1}','${m.team2}','${m.team2}')">${m.team2} Won</button>
+          </div>
+        </div>`;
+      }).join("");
+    } else {
+      pendingHtml = `<div class="empty-state">All matches resolved 🎉</div>`;
+    }
+
+    const resolvedHtml = resolvedMatches.length ? resolvedMatches.map(m=>{
+      const res = results[m.id];
+      return `<div class="resolved-row">
+        <div>
+          <div style="font-weight:700;font-size:.85rem">${m.team1} vs ${m.team2}</div>
+          <div style="font-size:.75rem;color:var(--muted);margin-top:.1rem">${fmtDate(m.date)}</div>
+        </div>
+        <span class="winner-tag">${res.winner} won</span>
+        <button class="undo-btn" onclick="setAdminTab('resolved');undoResult('${m.id}')">Undo</button>
+      </div>`;
+    }).join("") : `<div class="empty-state">No results declared yet.</div>`;
+
+    const pendCount = pendingMatches.length;
+    const resCount  = resolvedMatches.length;
+
+    main.innerHTML = `
+    <div class="page-header"><span class="page-title">Admin Panel</span></div>
+    <div class="admin-tabs">
+      <button class="admin-tab ${activeTab==='pending'?'active':''}" onclick="setAdminTab('pending')">Pending <span class="tab-count">${pendCount}</span></button>
+      <button class="admin-tab ${activeTab==='resolved'?'active':''}" onclick="setAdminTab('resolved')">Resolved <span class="tab-count">${resCount}</span></button>
+    </div>
+    <div id="admin-tab-pending" style="display:${activeTab==='pending'?'flex':'none'};flex-direction:column;gap:.6rem">${pendingHtml}</div>
+    <div id="admin-tab-resolved" style="display:${activeTab==='resolved'?'flex':'none'};flex-direction:column;gap:.5rem">${resolvedHtml}</div>`;
+  }
+
+  window.setAdminTab = function(tab){
+    $("admin-tab-pending").style.display  = tab==="pending"  ? "flex":"none";
+    $("admin-tab-resolved").style.display = tab==="resolved" ? "flex":"none";
+    document.querySelectorAll(".admin-tab").forEach(b=>{
+      b.classList.toggle("active", b.textContent.toLowerCase().startsWith(tab));
+    });
+  };
+
+  function getBetSummary(mid, allBets, match){
+    let t1=0,t2=0,t1c=0,t2c=0;
+    for(const [uid, bets] of Object.entries(allBets)){
+      const b = bets[mid];
+      if(!b) continue;
+      if(b.team===match.team1){t1+=b.amount;t1c++;}
+      else{t2+=b.amount;t2c++;}
+    }
+    return `${match.team1}: ${formatINR(t1)} (${t1c} bets) | ${match.team2}: ${formatINR(t2)} (${t2c} bets)`;
+  }
+
+  window.setResult = async function(mid, t1, t2, winner){
+    if(!confirm(`Confirm: ${winner} won the match?`)) return;
+    await set(dbRef(`results/${mid}`), { winner, ts: Date.now() });
+    toast(`Result saved: ${winner} won! ✅`, "success");
+    renderAdmin($("main-content"));
+  };
+
+  window.undoResult = async function(mid){
+    if(!confirm("Undo this result? All P&L from this match will be recalculated.")) return;
+    await set(dbRef(`results/${mid}`), null);
+    toast("Result undone.", "info");
+    renderAdmin($("main-content"));
+  };
+
+  // Expose for HTML auth tabs
+  window.switchTab = function(tab){
+    $("tab-login").classList.toggle("active", tab==="login");
+    $("tab-register").classList.toggle("active", tab==="register");
+    $("login-form").style.display  = tab==="login"  ? "block":"none";
+    $("register-form").style.display = tab==="register" ? "block":"none";
+  };
+</script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Sora:wght@400;600;700&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:          #111318;
+  --surface:     #1A1D24;
+  --card:        #1F2229;
+  --card2:       #1A1D24;
+  --border:      #2C3040;
+  --accent:      #E07840;
+  --accent-soft: #2A1E12;
+  --green:       #52C48A;
+  --green-soft:  #0E2018;
+  --red:         #E06060;
+  --red-soft:    #221212;
+  --gold:        #D4A840;
+  --text:        #E8E4F0;
+  --text2:       #9A96AA;
+  --muted:       #5A566A;
+  --radius:      14px;
+  --shadow:      0 1px 4px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.2);
+  --font-display: 'Sora', sans-serif;
+  --font-body:    'Nunito', sans-serif;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  min-height: 100vh;
+}
+
+/* ── TOASTS ── */
+.toast {
+  position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999;
+  padding: .75rem 1.25rem; border-radius: 10px; font-size: .88rem;
+  font-weight: 600; animation: slideIn .3s ease; max-width: 300px;
+  box-shadow: 0 4px 20px rgba(0,0,0,.12);
+}
+.toast-info    { background:var(--surface); border-left: 3px solid #4A90D9; color: var(--text); }
+.toast-success { background:var(--green-soft); border-left: 3px solid var(--green); color: var(--green); }
+.toast-error   { background:var(--red-soft); border-left: 3px solid var(--red); color: var(--red); }
+@keyframes slideIn { from{ transform:translateX(110%); opacity:0;} to{transform:translateX(0);opacity:1;} }
+
+/* ── AUTH ── */
+#auth-screen {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; padding: 1rem;
+  background: var(--bg);
+}
+.auth-box {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 20px; padding: 2rem; width: 100%; max-width: 390px;
+  box-shadow: 0 8px 40px rgba(0,0,0,.08);
+}
+.auth-logo { text-align: center; margin-bottom: 1.75rem; }
+.auth-logo h1 {
+  font-family: var(--font-display); font-size: 2rem; font-weight: 700;
+  letter-spacing: -0.5px; color: var(--accent);
+}
+.auth-logo p { color: var(--muted); font-size:.83rem; margin-top:.3rem; }
+
+.auth-tabs { display:flex; gap:.4rem; margin-bottom:1.5rem; background:var(--bg); border-radius:10px; padding:.3rem; }
+.auth-tab {
+  flex:1; padding:.5rem; border:none; background:transparent;
+  color: var(--muted); border-radius: 8px; cursor:pointer;
+  font-family:var(--font-body); font-size:.88rem; font-weight:600; transition: all .2s;
+}
+.auth-tab.active { background:var(--surface); color:var(--accent); box-shadow: 0 1px 6px rgba(0,0,0,.08); }
+.auth-form { display:flex; flex-direction:column; gap:.65rem; }
+.auth-input {
+  padding: .72rem 1rem; background:var(--bg); border: 1.5px solid var(--border);
+  border-radius: 10px; color: var(--text); font-family:var(--font-body); font-size:.93rem;
+  transition: border-color .2s; outline:none;
+}
+.auth-input:focus { border-color:var(--accent); background:var(--surface); }
+.auth-btn {
+  padding: .8rem; background: var(--accent);
+  border:none; border-radius:10px; color:#fff; font-family:var(--font-body);
+  font-size:.95rem; font-weight:700; cursor:pointer; margin-top:.2rem;
+  transition: background .2s, transform .1s;
+}
+.auth-btn:hover { background: #B8540A; }
+.auth-btn:active { transform: scale(.98); }
+.code-hint { font-size:.75rem; color:var(--muted); text-align:center; margin-top:.2rem; }
+
+/* ── APP SHELL ── */
+#app-screen { display: none; min-height: 100vh; padding-bottom: 76px; }
+
+/* NAV */
+nav {
+  position: fixed; bottom:0; left:0; right:0;
+  background: var(--surface); backdrop-filter:blur(20px); border-top: 1px solid var(--border);
+  display:flex;
+  justify-content:space-around; align-items:center; padding:.45rem 0 .55rem;
+  z-index: 100;
+}
+.nav-btn {
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+  background:none; border:none; color:var(--muted); cursor:pointer;
+  font-family:var(--font-body); font-size:.68rem; font-weight:600;
+  padding:.35rem .9rem; border-radius:10px; transition: color .2s;
+}
+.nav-btn .nav-icon { font-size:1.3rem; line-height:1; }
+.nav-btn.active { color: var(--accent); }
+#admin-nav-link { display:none; }
+
+/* HEADER */
+.app-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding: .85rem 1.25rem; background:var(--surface);
+  border-bottom: 1px solid var(--border); position:sticky; top:0; z-index:50;
+}
+.app-header-logo {
+  font-family: var(--font-display); font-size:1.15rem; font-weight:700;
+  color: var(--accent); letter-spacing:-.3px;
+}
+.app-header-right { display:flex; align-items:center; gap:.75rem; }
+#user-name-display { font-size:.82rem; color:var(--muted); font-weight:600; }
+.logout-btn {
+  background:none; border: 1.5px solid var(--border); color:var(--muted);
+  padding:.28rem .7rem; border-radius:7px; cursor:pointer; font-size:.78rem; font-weight:600;
+  transition: all .2s;
+}
+.logout-btn:hover { border-color:var(--accent); color:var(--accent); }
+
+/* MAIN */
+#main-content { padding: 1rem 1rem 0.5rem; max-width: 700px; margin: 0 auto; }
+
+.page-header { margin-bottom: 1rem; }
+.page-title {
+  font-family: var(--font-display); font-size:1.4rem; font-weight:700;
+  color: var(--text); letter-spacing: -.3px;
+}
+
+/* ── MATCHES ── */
+.match-list { display:flex; flex-direction:column; gap:.6rem; }
+
+.match-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: .9rem 1.1rem; box-shadow: var(--shadow); transition: box-shadow .2s, border-color .2s;
+}
+.match-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,.3); border-color: var(--accent); }
+.match-past { background: var(--card2); }
+.match-done { background: var(--card2); }
+
+.match-meta { font-size:.72rem; color:var(--muted); margin-bottom:.45rem; font-weight:600; letter-spacing:.2px; }
+.match-teams { display:flex; align-items:center; gap:.5rem; margin-bottom:.6rem; }
+.team-badge { font-family:var(--font-display); font-size:1.3rem; font-weight:700; letter-spacing:-.5px; }
+.vs { color:var(--muted); font-size:.7rem; font-weight:700; flex:1; text-align:center; text-transform:uppercase; }
+
+.result-badge { font-size:.82rem; font-weight:700; margin-bottom:.3rem; color:var(--text2); }
+.my-bet-result { font-size:.82rem; margin-top:.25rem; font-weight:700; }
+.bet-won { color: var(--green); }
+.bet-lost { color: var(--red); }
+
+.my-bet-pill {
+  display:inline-flex; align-items:center; gap:.35rem;
+  padding:.22rem .7rem; border:1.5px solid; border-radius:20px;
+  font-size:.77rem; font-weight:700; margin-top:.2rem; color: var(--text2);
+  background: var(--bg);
+}
+
+/* Bet form */
+.bet-form { margin-top: .65rem; border-top: 1px solid var(--border); padding-top:.65rem; }
+.bet-team-choice { display:flex; gap:.4rem; margin-bottom:.45rem; }
+.bet-team-btn {
+  flex:1; padding:.55rem; background:var(--bg); border:1.5px solid var(--border);
+  border-radius:9px; color:var(--text2); cursor:pointer; font-family:var(--font-display);
+  font-size:1rem; font-weight:700; transition: all .18s;
+}
+.bet-team-btn:hover { border-color:var(--tc); color:var(--tc); background:var(--surface); }
+.bet-team-btn.selected {
+  border-color:var(--tc);
+  background: color-mix(in srgb, var(--tc) 12%, var(--card));
+  color:var(--tc);
+}
+
+.bet-amount-row { display:flex; gap:.4rem; }
+.bet-input {
+  flex:1; padding:.55rem .75rem; background:var(--bg); border:1.5px solid var(--border);
+  border-radius:9px; color:var(--text); font-family:var(--font-body); font-size:.9rem;
+  outline:none; transition: border-color .2s;
+}
+.bet-input:focus { border-color:var(--accent); background:var(--surface); }
+.place-bet-btn {
+  padding:.55rem 1rem; background:var(--accent); border:none; border-radius:9px;
+  color:#fff; font-family:var(--font-body); font-weight:700; cursor:pointer;
+  white-space:nowrap; font-size:.88rem; transition: background .2s;
+}
+.place-bet-btn:hover { background: #B8540A; }
+
+/* ── LEADERBOARD ── */
+.lb-table { width:100%; border-collapse:collapse; }
+.lb-table thead tr { border-bottom: 1.5px solid var(--border); }
+.lb-table th { padding:.55rem .75rem; text-align:left; color:var(--muted); font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.6px; }
+.lb-table td { padding:.7rem .75rem; border-bottom: 1px solid var(--border); font-size:.88rem; }
+.lb-table tbody tr:hover { background: var(--card2); }
+.my-row { background: var(--accent-soft) !important; }
+.lb-name { font-weight:700; color:var(--text); }
+.lb-pl { font-weight:700; }
+.you-tag { background:var(--accent); color:#fff; font-size:.62rem; padding:.1rem .4rem; border-radius:8px; margin-left:.3rem; font-weight:700; }
+
+/* ── ACCOUNT ── */
+.account-stats { display:grid; grid-template-columns:repeat(2,1fr); gap:.6rem; margin-bottom:1.25rem; }
+.stat-card {
+  background: var(--card); border:1px solid var(--border); border-radius:var(--radius);
+  padding:.9rem 1rem; text-align:center; box-shadow:var(--shadow);
+}
+.stat-val { font-family:var(--font-display); font-size:1.6rem; font-weight:700; letter-spacing:-.5px; }
+.stat-label { color:var(--muted); font-size:.72rem; margin-top:.2rem; font-weight:600; }
+
+.section-title { font-family:var(--font-display); font-size:1rem; font-weight:700; color:var(--text2); margin-bottom:.6rem; letter-spacing:-.2px; }
+
+.bet-history { display:flex; flex-direction:column; gap:.45rem; }
+.bet-history-row {
+  background:var(--card); border:1px solid var(--border); border-radius:10px;
+  padding:.65rem .9rem; box-shadow:var(--shadow);
+}
+.bet-history-row.won  { border-left: 3px solid var(--green); }
+.bet-history-row.lost { border-left: 3px solid var(--red); }
+.bet-history-row.pending { border-left: 3px solid var(--muted); }
+.bh-match { font-size:.83rem; font-weight:700; margin-bottom:.2rem; color:var(--text); }
+.bh-date { color:var(--muted); font-weight:600; font-size:.76rem; }
+.bh-detail { display:flex; align-items:center; gap:.6rem; font-size:.82rem; color:var(--text2); }
+.bh-pnl { font-weight:700; margin-left:auto; }
+.bh-pending { margin-left:auto; font-size:.8rem; }
+
+/* ── ADMIN ── */
+.admin-pending, .admin-resolved { display:flex; flex-direction:column; gap:.6rem; }
+.admin-match-card {
+  background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+  padding:.9rem 1.1rem; box-shadow:var(--shadow);
+}
+.admin-match-label { font-weight:700; margin-bottom:.25rem; font-size:.92rem; color:var(--text); }
+.admin-bet-summary { font-size:.76rem; color:var(--muted); margin-bottom:.65rem; font-weight:600; }
+.admin-result-btns { display:flex; gap:.4rem; }
+.admin-win-btn {
+  flex:1; padding:.55rem; background:color-mix(in srgb,var(--tc) 8%,var(--card));
+  border:1.5px solid color-mix(in srgb,var(--tc) 40%,var(--border));
+  border-radius:9px; color:var(--tc); cursor:pointer;
+  font-family:var(--font-display); font-size:1rem; font-weight:700; transition: all .18s;
+}
+.admin-win-btn:hover {
+  background: color-mix(in srgb,var(--tc) 18%,var(--card));
+  border-color:var(--tc);
+}
+.resolved-row {
+  background:var(--card2); border:1px solid var(--border); border-radius:10px;
+  padding:.55rem .9rem; font-size:.83rem; display:flex; align-items:center; gap:.6rem;
+  color: var(--text2);
+}
+.undo-btn {
+  margin-left:auto; background:none; border:1.5px solid var(--border);
+  color:var(--muted); border-radius:6px; padding:.2rem .55rem;
+  cursor:pointer; font-size:.73rem; font-weight:600; transition: all .2s;
+}
+.undo-btn:hover { border-color:var(--red); color:var(--red); }
+
+/* P&L colors */
+.profit-pos { color: var(--green); }
+.profit-neg { color: var(--red); }
+
+.empty-state { color:var(--muted); text-align:center; padding:2rem; font-size:.9rem; font-weight:600; }
+.lb-loading  { color:var(--muted); text-align:center; padding:2rem; font-weight:600; }
+
+/* Admin tabs */
+.admin-tabs { display:flex; gap:.4rem; margin-bottom:1rem; background:var(--bg); border-radius:10px; padding:.3rem; }
+.admin-tab {
+  flex:1; padding:.45rem; border:none; background:transparent;
+  color:var(--muted); border-radius:8px; cursor:pointer;
+  font-family:var(--font-body); font-size:.85rem; font-weight:700; transition:all .2s;
+  display:flex; align-items:center; justify-content:center; gap:.4rem;
+}
+.admin-tab.active { background:var(--surface); color:var(--text); box-shadow:0 1px 6px rgba(0,0,0,.07); }
+.tab-count {
+  background:var(--border); color:var(--text2); font-size:.7rem; padding:.1rem .4rem;
+  border-radius:8px; font-weight:700; min-width:1.4rem; text-align:center;
+}
+.admin-tab.active .tab-count { background:var(--accent-soft); color:var(--accent); }
+
+.admin-match-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:.15rem; }
+.admin-match-meta { font-size:.73rem; color:var(--muted); margin-bottom:.5rem; font-weight:600; }
+.admin-past-tag {
+  font-size:.68rem; font-weight:700; background:var(--accent-soft); color:var(--accent);
+  padding:.12rem .5rem; border-radius:6px; border:1px solid color-mix(in srgb,var(--accent) 30%,var(--border));
+}
+.admin-future-tag {
+  font-size:.68rem; font-weight:700; background:var(--green-soft); color:var(--green);
+  padding:.12rem .5rem; border-radius:6px; border:1px solid color-mix(in srgb,var(--green) 30%,var(--border));
+}
+.winner-tag {
+  font-size:.78rem; font-weight:700; background:var(--green-soft); color:var(--green);
+  padding:.2rem .55rem; border-radius:8px; margin-left:auto; white-space:nowrap;
+}
+
+@media(max-width:480px){
+  .account-stats { grid-template-columns:1fr 1fr; }
+  #main-content { padding: .75rem .75rem 0; }
+}
+</style>
+</head>
+
+<body>
+
+<!-- ── AUTH SCREEN ── -->
+<div id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <h1>IPL BETTING</h1>
+      <p>IPL 2026 · Private League</p>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">Login</button>
+      <button class="auth-tab" id="tab-register" onclick="switchTab('register')">Register</button>
+    </div>
+
+    <!-- Login -->
+    <div id="login-form">
+      <div class="auth-form">
+        <input class="auth-input" id="login-email" type="email" placeholder="Email" />
+        <input class="auth-input" id="login-pass"  type="password" placeholder="Password" />
+        <button class="auth-btn" onclick="doLogin()">Sign In 🏏</button>
+      </div>
+    </div>
+
+    <!-- Register -->
+    <div id="register-form" style="display:none">
+      <div class="auth-form">
+        <input class="auth-input" id="reg-name"  type="text"     placeholder="Your name" />
+        <input class="auth-input" id="reg-email" type="email"    placeholder="Email" />
+        <input class="auth-input" id="reg-pass"  type="password" placeholder="Password (min 6 chars)" />
+        <input class="auth-input" id="reg-code"  type="text"     placeholder="Squad code" />
+        <button class="auth-btn" onclick="doRegister()">Join the League 🔥</button>
+        <p class="code-hint">Ask your group admin for the squad code</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── APP SCREEN ── -->
+<div id="app-screen">
+  <header class="app-header">
+    <span class="app-header-logo">IPL BETTING</span>
+    <div class="app-header-right">
+      <span id="user-name-display"></span>
+      <button class="logout-btn" onclick="doLogout()">Logout</button>
+    </div>
+  </header>
+
+  <div id="main-content"></div>
+
+  <nav>
+    <button class="nav-btn active" data-page="matches" onclick="loadPage('matches')">
+      <span class="nav-icon">📅</span>Matches
+    </button>
+    <button class="nav-btn" data-page="leaderboard" onclick="loadPage('leaderboard')">
+      <span class="nav-icon">🏆</span>Leaderboard
+    </button>
+    <button class="nav-btn" data-page="account" onclick="loadPage('account')">
+      <span class="nav-icon">👤</span>Account
+    </button>
+    <button class="nav-btn" data-page="admin" onclick="loadPage('admin')" id="admin-nav-link">
+      <span class="nav-icon">⚙️</span>Admin
+    </button>
+  </nav>
+</div>
+
+</body>
+</html>
